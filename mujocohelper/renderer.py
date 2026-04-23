@@ -57,7 +57,7 @@ class Renderer(mujoco.Renderer):
             frameSize=(self.width, self.height)
         )
         self._frame_dt = 1.0 / framerate
-        self._next_render_time = 0.0 # Reset for new video
+        self._next_render_time = 0.0  # Reset for new video
 
     def __enter__(self):
         return self
@@ -115,7 +115,7 @@ class Renderer(mujoco.Renderer):
             self._next_render_time += self._frame_dt
 
     def render_if_ready(self, data: mujoco.MjData):
-        """Rendert nur, wenn die Simulationszeit den nächsten Frame-Zeitpunkt erreicht hat."""
+        """Renders only when the simulation time has reached the next frame time."""
         
         if self.video_writer is None:
             raise RuntimeError("Video writer not initialized. Call init_video() before rendering frames.")
