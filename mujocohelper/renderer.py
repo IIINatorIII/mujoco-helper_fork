@@ -34,6 +34,8 @@ class Renderer(mujoco.Renderer):
         super().__init__(model, height, width, max_geom, font_scale)
 
         self.video_writer = None
+        self._frame_dt = 0.0
+        self._next_render_time = 0.0
     
     def init_video(self, 
                    filename: str | PathLike[str], 
@@ -54,7 +56,13 @@ class Renderer(mujoco.Renderer):
             fps=framerate,
             frameSize=(self.width, self.height)
         )
+        self._frame_dt = 1.0 / framerate
+        self._next_render_time = 0.0 # Reset for new video
 
+    def __enter__(self):
+        return self
+    
+    
     def render_frame_with_plot(self, 
                                fig: Figure, 
                                pos: tuple[int, int], 
@@ -94,6 +102,28 @@ class Renderer(mujoco.Renderer):
         # convert the frame from RGB to BGR format for OpenCV and write to video
         self.video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
     
+    
+    def render_if_ready_with_plot(self, 
+                                  data: mujoco.MjData, 
+                                  fig: Figure, 
+                                  pos: tuple[int, int] = (0, 0), 
+                                  size: tuple[int, int] = (100, 100)
+                                  ) -> None:
+        """Checks simulation time and renders frame with plot overlay if a frame is due."""
+        if self.video_writer is not None and data.time >= self._next_render_time:
+            self.render_frame_with_plot(fig, pos, size)
+            self._next_render_time += self._frame_dt
+
+    def render_if_ready(self, data: mujoco.MjData):
+        """Rendert nur, wenn die Simulationszeit den nächsten Frame-Zeitpunkt erreicht hat."""
+        
+        if self.video_writer is None:
+            raise RuntimeError("Video writer not initialized. Call init_video() before rendering frames.")
+
+        if data.time >= self._next_render_time:
+            self.render()
+            self._next_render_time += self._frame_dt
+
     def render_frame(self) -> None:
         """Renders the scene and writes it to the video writer if initialized.
 
